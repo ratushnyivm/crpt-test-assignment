@@ -1,34 +1,33 @@
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.renderers import TemplateHTMLRenderer
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework import permissions, renderers, response, status, views
 
 from nasa import serializers, services
 
 
-class TaskIdView(APIView):
-    permission_classes = [IsAuthenticated]
+class TaskIdView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         serializer = serializers.TaskIdSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        task_id = services.create_task(
+        task = services.TaskService(
             start_date=serializer.validated_data.get('start_date'),
             end_date=serializer.validated_data.get('end_date'),
             count=serializer.validated_data.get('count')
         )
+        task_id = task.create_task()
 
         if task_id is None:
-            return Response(
-                {'error': 'Failed to retrieve data from nasa. Try again.'}
+            return response.Response(
+                {'error': 'Failed to retrieve data from nasa. Try again.'},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        return Response({'task_id': task_id})
+        return response.Response({'task_id': task_id})
 
 
-class TaskResultView(APIView):
-    permission_classes = [IsAuthenticated]
+class TaskResultView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         serializer = serializers.TaskResultSerializer(
@@ -36,26 +35,32 @@ class TaskResultView(APIView):
         )
         serializer.is_valid(raise_exception=True)
 
-        task_result = services.get_task_result(
-            serializer.validated_data.get('task_id')
+        task_result = services.TaskService.get_task_result(
+            task_id=serializer.validated_data.get('task_id')
         )
 
-        return Response(task_result)
+        if task_result.get('error'):
+            return response.Response(
+                task_result,
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return response.Response(task_result)
 
 
-class FormIdView(APIView):
-    renderer_classes = [TemplateHTMLRenderer]
+class FormIdView(views.APIView):
+    renderer_classes = [renderers.TemplateHTMLRenderer]
     template_name = 'form_get_task_id.html'
 
     def get(self, request):
         serializer = serializers.TaskIdSerializer
-        return Response({'serializer': serializer})
+        return response.Response({'serializer': serializer})
 
 
-class FormResultView(APIView):
-    renderer_classes = [TemplateHTMLRenderer]
+class FormResultView(views.APIView):
+    renderer_classes = [renderers.TemplateHTMLRenderer]
     template_name = 'form_get_task_result.html'
 
     def get(self, request):
         serializer = serializers.TaskResultSerializer
-        return Response({'serializer': serializer})
+        return response.Response({'serializer': serializer})
