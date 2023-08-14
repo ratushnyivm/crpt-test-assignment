@@ -28,6 +28,7 @@ API сервис для запроса в [NASA API](https://api.nasa.gov/) ин
 | python-dotenv                     | "^1.0.0"   |
 | requests                          | "^2.31.0"  |
 | djangorestframework-simplejwt     | "^5.2.2"   |
+| psycopg2-binary                   | "^2.9.7"   |
 
 ---
 
